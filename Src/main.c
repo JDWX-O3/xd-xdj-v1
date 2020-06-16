@@ -114,7 +114,7 @@ static void MX_NVIC_Init(void);
 
 void GConfig_Init(void)
 {
-	g_config.user_timer_max = 120;
+	g_config.user_timer_max = 720;
 
 
 	//·çÉÈ×ª
@@ -177,7 +177,7 @@ static void Device_Init(void)
 	}        
 
 	
-	g_config.user_timer_max = 120;
+	g_config.user_timer_max = 720;
 	X9C103_Value_Clear();
 	g_config.x9c103_gear = 0;
 	X9C103_Gear_Display(g_config.x9c103_gear);	

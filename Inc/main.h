@@ -151,7 +151,7 @@ void GConfig_Init(void);
 
 
 //1:需要电流检测  0:不需要电流检测
-#define FAULT_CHECK_FLAG 0     //带电容的风机无法检测电流，去掉故障检测
+#define FAULT_CHECK_FLAG 1     //带电容的风机无法检测电流，去掉故障检测
 //#define FAULT_CHECK_FLAG 1     //需要电流检测
 
 
