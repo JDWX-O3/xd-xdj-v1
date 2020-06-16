@@ -84,7 +84,7 @@ void BTN1_PRESS_DOWN_Handler(void* btn)
 	if (g_config.power_key_status == ENABLE){
 		// 电源键开机
 		LED_J_RED_On();
-		g_config.dev_run_mode = MANAUL;  //默认手动模式
+		g_config.dev_run_mode = RUN_MOD_MANAUL;  //默认手动模式
 
 
 		g_config.tm1650_status = ENABLE;
@@ -93,7 +93,7 @@ void BTN1_PRESS_DOWN_Handler(void* btn)
 
 
 
-
+		GConfig_Init();
 		DEVICE_RUN;
 		g_config.o3_set_minute = 0;
 		TM1650_Display_Num(0);
@@ -114,14 +114,18 @@ void BTN1_PRESS_DOWN_Handler(void* btn)
 		TM1650_Close_Display();
 		TM1650_Close_Display();
 		
+		//故障清零
+		g_config.fault_code = 0;
+
 
 		DEVICE_STOP;
-
-
-		//开机档位默认1
-		X9C103_Gear_Display(0);	
+		//必须设置为0
+		g_config.o3_set_minute = 0;
+ 		//开机档位默认1
 		//功率撤
 		X9C103_Value_Clear();
+		g_config.x9c103_gear = 0;
+		X9C103_Gear_Display(g_config.x9c103_gear);	
 		
 		//osTimerStart(myTimer02Handle, 60000);
 	}
@@ -135,15 +139,17 @@ void BTN1_PRESS_UP_Handler(void* btn)
 
 void BTN2_PRESS_DOWN_Handler(void* btn)
 {
+	//g_config.press_key_value = 2;
+	
 	//三个档
-	if(g_config.power_key_status == DISABLE || g_config.debug_mode == ENABLE){
+	if(g_config.power_key_status == DISABLE){
 		return;
 	}
 
 	//模式切换
-	if(g_config.dev_run_mode == MANAUL){
+	if(g_config.dev_run_mode == RUN_MOD_MANAUL){
 		//g_config.o3_set_minute = 888;
-		g_config.dev_run_mode = AUTO;			
+		g_config.dev_run_mode = RUN_MOD_AUTO;			
 		TM1650_First_Display_Num(0xa);
 		TM1650_Second_Display_Num(0);
 		TM1650_Thirth_Display_Num(g_config.kq_quality);
@@ -158,8 +164,8 @@ void BTN2_PRESS_DOWN_Handler(void* btn)
 		}
 		
 	}
-	else {
-		g_config.dev_run_mode = MANAUL;
+	else if(g_config.dev_run_mode == RUN_MOD_AUTO){
+		g_config.dev_run_mode = RUN_MOD_MANAUL;
 		g_config.o3_set_minute = 0;
 		TM1650_Display_Num(g_config.o3_set_minute);
 
@@ -167,7 +173,7 @@ void BTN2_PRESS_DOWN_Handler(void* btn)
 		if (g_config.x9c103_gear != 1){
 			X9C103_Value_Clear();
 			g_config.x9c103_gear = 1;
-			X9C103_Value_Add(10);
+			X9C103_Value_Add(25);
 			X9C103_Gear_Display(g_config.x9c103_gear);
 		}
 		
@@ -177,62 +183,83 @@ void BTN2_PRESS_DOWN_Handler(void* btn)
 
 void BTN3_PRESS_DOWN_Handler(void* btn)
 {
+	g_config.press_key_value = 3;
+	
 	//定时键，每按一下怎么1 分
-	if(g_config.dev_run_mode == AUTO ||g_config.debug_mode == ENABLE || g_config.power_key_status == DISABLE){
+	if(g_config.power_key_status == DISABLE){
 		return;
 	}
 
-	g_config.sec_count = 0;  //防止跳变
-	g_config.o3_set_minute++;
-	if (g_config.o3_set_minute > g_config.user_timer_max){
-		g_config.o3_set_minute = 0;
+	//模式切换
+	if(g_config.dev_run_mode == RUN_MOD_MANAUL){
+		g_config.sec_count = 0;  //防止跳变
+		g_config.o3_set_minute++;
+		if (g_config.o3_set_minute > g_config.user_timer_max){
+			g_config.o3_set_minute = 0;
+		}
+
+
+		// 手动模式下，风扇停止后增加计数，启动流程
+		if (g_config.fan_run_status != DEV_RUN && g_config.o3_set_minute > 0){
+			DEVICE_RUN;               //设备开始运行
+			g_config.fan_run_sec = 1;  //防止停机
+			g_config.o3_stop_sec = 60;
+		}
+		
+		TM1650_Display_Num(g_config.o3_set_minute);
+	}
+	else{
+
+		return;
 	}
 
 
-	// 手动模式下，风扇停止后增加计数，启动流程
-	if (g_config.dev_run_mode == MANAUL && g_config.fan_run_status != RUN && g_config.o3_set_minute > 0){
-		RELAY_FAN_RUN();               //SDA高电平
-		g_config.fan_run_status = RUN;
-		g_config.fan_run_sec = 1;  //防止停机
-		g_config.o3_stop_sec = 60;
-	}
 
-
-	TM1650_Display_Num(g_config.o3_set_minute);
 }
 
 
 void BTN4_PRESS_DOWN_Handler(void* btn)
 {
+	g_config.press_key_value = 4;
+	
 	//档位，数字电位器
 	//TM1650_Thirth_Display_Num(g_config.x9c103_gear);
 
 	//三个档
-	if(g_config.dev_run_mode == AUTO || g_config.debug_mode == ENABLE || g_config.power_key_status == DISABLE){
+	if(g_config.power_key_status == DISABLE){
 		return;
 	}
 
-	
-	g_config.x9c103_gear++;
-	if ( g_config.x9c103_gear > 3){
-		//循环
-		X9C103_Value_Clear();
-		g_config.x9c103_gear = 1;
-	}	
 
-	////
-	if (g_config.x9c103_gear == 1){
-		X9C103_Value_Add(10);
-		X9C103_Gear_Display(g_config.x9c103_gear);
+	//模式切换
+	if(g_config.dev_run_mode == RUN_MOD_MANAUL){
+		g_config.x9c103_gear++;
+		if ( g_config.x9c103_gear > 3){
+			//循环
+			X9C103_Value_Clear();
+			g_config.x9c103_gear = 1;
+		}	
+
+		////
+		if (g_config.x9c103_gear == 1){
+			X9C103_Value_Add(25);
+			X9C103_Gear_Display(g_config.x9c103_gear);
+		}
+		else if (g_config.x9c103_gear == 2){
+			X9C103_Value_Add(35);  //35
+			X9C103_Gear_Display(g_config.x9c103_gear);
+		}
+		else if (g_config.x9c103_gear == 3){
+			X9C103_Value_Add(40);    //50
+			X9C103_Gear_Display(g_config.x9c103_gear);
+		}
+
 	}
-	else if (g_config.x9c103_gear == 2){
-		X9C103_Value_Add(25);  //35
-		X9C103_Gear_Display(g_config.x9c103_gear);
+	else{
+
+		return;
 	}
-	else if (g_config.x9c103_gear == 3){
-		X9C103_Value_Add(15);    //50
-		X9C103_Gear_Display(g_config.x9c103_gear);
-	}
+
 
 }
 
@@ -240,45 +267,69 @@ void BTN4_PRESS_DOWN_Handler(void* btn)
 
 void BTN5_PRESS_DOWN_Handler(void* btn)
 {
-	if(g_config.power_key_status == DISABLE || g_config.debug_mode == ENABLE){
+	g_config.press_key_value = 5;
+	
+	if(g_config.power_key_status == DISABLE){
 		return;
 	}
+
+
+	//
+	if(g_config.dev_run_mode == RUN_MOD_MANAUL){
 	
-	//取消
-	DEVICE_STOP;
-	g_config.o3_set_minute = 0;
+		//取消
+		DEVICE_STOP;
+		g_config.o3_set_minute = 0;
+		TM1650_Display_Num(g_config.o3_set_minute);
+
+		//开机档位默认1
+		X9C103_Gear_Display(0);	
+		//功率撤
+		X9C103_Value_Clear();
+
+		g_config.x9c103_gear = 0;
+	}
+	else{
+
+		return;
+	}
 
 
-	//开机档位默认1
-	X9C103_Gear_Display(0);	
-	//功率撤
-	X9C103_Value_Clear();
-
-	g_config.x9c103_gear = 0;
 }
 
 void BTN3_LONG_PRESS_HOLD_Handler(void* btn)
 {
-	if(g_config.power_key_status == DISABLE || g_config.debug_mode == ENABLE){
-		return;
-	}
-
 	HAL_Delay(40);
 	BTN3_PRESS_DOWN_Handler(btn);
 }
 
 void LONG_PRESS_Debug_Handler(void* btn)
 {
-	if(g_config.power_key_status == DISABLE || g_config.dev_run_mode == MANAUL){
+
+	if(g_config.power_key_status == ENABLE || g_config.press_key_value != 5){
 		return;
 	}
 
-	if (g_config.debug_mode == DISABLE){
-		g_config.debug_mode = ENABLE;
+	//debug mode
+	g_config.dev_run_mode = RUN_MOD_DEBUG;
+	g_config.tm1650_status = ENABLE;
+	DEVICE_STOP;
+	g_config.o3_set_minute = 0;
+
+
+
+	/*
+	if(g_config.power_key_status == DISABLE || g_config.dev_run_mode == RUN_MOD_MANAUL){
+		return;
+	}
+
+	if (g_config.fault_code == 0){
+		g_config.fault_code = 1;
 	}
 	else{
-		g_config.debug_mode = DISABLE;
+		g_config.fault_code = 0;
 	}
+	*/
 }
 
 
@@ -302,7 +353,8 @@ void XD_Key_init(void)
 	//button_attach(&btn1, SINGLE_CLICK,     BTN1_SINGLE_Click_Handler);
 	//button_attach(&btn1, DOUBLE_CLICK,     BTN1_DOUBLE_Click_Handler);
 	button_attach(&btn3, LONG_PRESS_HOLD, BTN3_LONG_PRESS_HOLD_Handler);
-	button_attach(&btn3, LONG_PRESS_START,  LONG_PRESS_Debug_Handler);
+	
+	button_attach(&btn2, LONG_PRESS_START,  LONG_PRESS_Debug_Handler);
 	button_start(&btn1);
 	button_start(&btn2);
 	button_start(&btn3);

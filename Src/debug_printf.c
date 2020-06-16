@@ -1,20 +1,41 @@
 
-#include <string.h>
+#include "main.h"
+#include "cmsis_os.h"
+
+/* Private includes ----------------------------------------------------------*/
+/* USER CODE BEGIN Includes */
+#include "stm32f1xx_hal.h"
+#include "stm32f1xx_hal_def.h"
+#include "stm32f1xx_hal_gpio.h"
+#include "stm32f1xx_hal_iwdg.h"
+#include "xd_dig_led.h"
+#include "xd_tm1650.h"
+#include "xd_key.h"
+#include "xd_relay.h"
+#include "xd_infrared.h"
+#include "xd_x9c103.h"
+#include "xd_sensor.h"
+#include "multi_button.h"
+#include "debug_printf.h"
 #include <stdio.h>
-#define ITM_Port8(n) (*((volatile unsigned char *)(0xE0000000+4*n)))
-#define ITM_Port16(n) (*((volatile unsigned short*)(0xE0000000+4*n)))
-#define ITM_Port32(n) (*((volatile unsigned long *)(0xE0000000+4*n)))
- 
-#define DEMCR (*((volatile unsigned long *)(0xE000EDFC)))
-#define TRCENA 0x01000000
-struct __FILE { int handle; /* Add whatever needed */ };
-FILE __stdout;
-FILE __stdin;
- 
-int fputc(int ch, FILE *f) {
-    if (DEMCR & TRCENA) {
-        while (ITM_Port32(0) == 0);
-        ITM_Port8(0) = ch;
-    }
-    return(ch);
+#include <string.h>
+
+
+extern UART_HandleTypeDef huart4;
+
+
+#ifdef __GNUC__
+#define PUTCHAR_PROTOTYPE int __io_putchar(int ch)
+#else
+#define PUTCHAR_PROTOTYPE int fputc(int ch, FILE *f)
+#endif
+PUTCHAR_PROTOTYPE
+{
+
+    //具体哪个串口可以更改huart1为其它串口
+    HAL_UART_Transmit(&huart4 , (uint8_t *)&ch, 1 , 0xffff);
+    return ch;
 }
+
+
+

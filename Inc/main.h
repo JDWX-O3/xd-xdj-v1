@@ -50,14 +50,15 @@ extern "C" {
   */
 typedef enum
 {
-	MANAUL_FAN_RUN          = 1,    /*!< Full transfer     */
-	MANAUL_FAN_RUN_30S,    /*!< Full transfer     */
-	MANAUL_FAN_STOP,    /*!< Full transfer     */
-	MANAUL_FAN_STOP_30S,    /*!< Full transfer     */
-	MANAUL_O3_RUN,    /*!< Full transfer     */
-	MANAUL_O3_RUN_30S,    /*!< Full transfer     */
-	MANAUL_O3_STOP,    /*!< Full transfer     */
-	MANAUL_O3_STOP_30S,    /*!< Full transfer     */
+	FSM_FAN_RUN          = 1,    /*!<风扇运行0s-30s的状态     */
+	FSM_FAN_RUN_OVER_30S,    /*!<风扇运行30s后的状态     */
+	FSM_O3_RUN,    /*!< o3 运行0-30s的状态    */
+	FSM_O3_RUN_OVER_30S,    /*!< O3 运行30s后的状态    */
+	FSM_O3_STOP,    /*!< O3停止0-30s的状态     */
+	FSM_O3_STOP_OVER_30S,    /* O3停30s 后的状态     */
+	FSM_FAN_STOP,    /*! 风扇停止0s-30s的状态    */
+	FSM_FAN_STOP_OVER_30S,    /*!<风扇停止30s后的状态     */
+	FSM_FAULT_STATUS,    /*!<风扇停止30s后的状态     */
 }DEV_MANAUL_RUN_STATUS_TypeDef;
 
 #define SAMPLE_NUM   8
@@ -66,12 +67,11 @@ typedef enum
 /// Attributes structure for thread.
 typedef struct {
 
-	uint32_t                 manaul_status;   ///手动运行状态
-	uint32_t                 auto_status;   ///手动运行状态
+	uint32_t                 device_fsm_status;   ///手动运行状态
 	uint32_t                 current_cmd;   ///当前设备指令， run，stop	
 	uint32_t                 press_key_value;   ///<电源键bits
-	uint32_t                 debug_mode;   ///debug mode
-
+	//uint32_t                 debug_mode;   ///debug mode
+	uint32_t                 fault_code;   ///故障状态
 
 	uint32_t                 power_key_status;   ///<电源键bits
 	uint32_t                 dev_run_mode;   ///设备运模式
@@ -90,9 +90,9 @@ typedef struct {
 	uint32_t                 o3_run_sec;   ///o3 运行30秒
 	uint32_t                 o3_stop_sec;   ///风扇运行30秒
 
-	//风扇停止分钟计数，
-	uint32_t                 fan_stop_minute;   ///风扇运行30秒
-	uint32_t                 o3_run_minute;   ///风扇运行30秒
+	//风扇停止分钟计数，该参数适用于auto 模式
+	uint32_t                 fan_stop_minute;   ///风扇停止
+	uint32_t                 o3_run_minute;   /// 臭氧运行
 
 
 
@@ -107,6 +107,9 @@ typedef struct {
 	uint8_t                 kq_sensor_b;   ///
 	uint8_t                 kq_quality;   ///
 	uint8_t                 resv;   ///
+	
+	uint32_t               kq_adjust;   ///  run 调节
+	uint32_t               kq_adjust_count;   ///  stop调节
 
 	uint32_t               cur_adc_value;   ///  电流值
 	float                    cur_sw_value;   ///  电流值
@@ -127,27 +130,46 @@ typedef struct {
 void Error_Handler(void);
 
 /* USER CODE BEGIN EFP */
+void GConfig_Init(void);
 
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
+#define digout1_Pin GPIO_PIN_2
+#define digout1_GPIO_Port GPIOC
 #define IR_Pin GPIO_PIN_1
 #define IR_GPIO_Port GPIOA
+#define digout2_Pin GPIO_PIN_2
+#define digout2_GPIO_Port GPIOA
+#define digout3_Pin GPIO_PIN_5
+#define digout3_GPIO_Port GPIOA
 /* USER CODE BEGIN Private defines */
 #define KEY1_SCAN_COUNT 4
 
 
-
-#define RUN   1
-#define STOP   0
+#define CURRENT_P_VALUE   0.35
 
 
-#define MANAUL   0
-#define AUTO   1
+//1:需要电流检测  0:不需要电流检测
+#define FAULT_CHECK_FLAG 0     //带电容的风机无法检测电流，去掉故障检测
+//#define FAULT_CHECK_FLAG 1     //需要电流检测
 
 
-#define DEVICE_RUN  ( g_config.current_cmd = RUN)
-#define DEVICE_STOP    (g_config.current_cmd = STOP)
+
+#define DEV_FAULT   2
+#define DEV_RUN   1
+#define DEV_STOP   0
+
+
+#define RUN_MOD_MANAUL   0
+#define RUN_MOD_AUTO   1
+#define RUN_MOD_FAULT   2
+#define RUN_MOD_DEBUG   3
+
+
+#define DEVICE_RUN  ( g_config.current_cmd = DEV_RUN)
+#define DEVICE_STOP    (g_config.current_cmd = DEV_STOP)
+#define DEVICE_FAULT   (g_config.current_cmd = DEV_FAULT)
 
 /* USER CODE END Private defines */
 

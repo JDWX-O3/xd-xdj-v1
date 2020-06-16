@@ -38,10 +38,10 @@ extern userOpAttr_t g_config;
  
 int32_t O3_Realy_Start(void)
 {
-
-	if (g_config.fan_run_status == RUN){
-		RELAY_OUT_3_SET;
-		g_config.o3_run_status = RUN;
+	//o3 运行的时候臭氧停
+	if (g_config.fan_run_status == DEV_RUN){
+		RELAY_OUT_2_SET;
+		g_config.o3_run_status = DEV_RUN;
 		return 0;
 	}
 	else{
@@ -57,8 +57,8 @@ int32_t O3_Realy_Start(void)
   
 int32_t O3_Realy_Stop(void)
 {
-	RELAY_OUT_3_RESET;
-	g_config.o3_run_status = STOP;
+	RELAY_OUT_2_RESET;
+	g_config.o3_run_status = DEV_STOP;
 	return 0;
 }
 
@@ -67,18 +67,19 @@ int32_t O3_Realy_Stop(void)
 
 int32_t FAN_Realy_Start(void)
 {
-	RELAY_OUT_2_SET;
-	g_config.fan_run_status = RUN;
+	RELAY_OUT_1_SET;
+	g_config.fan_run_status = DEV_RUN;
 	return 0;
 }
 
   
 int32_t FAN_Realy_Stop(void)
 {
-
-	if (g_config.o3_run_status == STOP){
-		RELAY_OUT_2_RESET;
-		g_config.fan_run_status = STOP;
+	// 互锁保护
+	//o3 停的时候臭氧停
+	if (g_config.o3_run_status == DEV_STOP){
+		RELAY_OUT_1_RESET;
+		g_config.fan_run_status = DEV_STOP;
 		return 0;
 	}
 	else{

@@ -46,6 +46,8 @@ typedef struct T4_Infrared
 	uint16_t  keepLevel[128];  //记录电平持续时间 0：低电平  1:高电平
 	uint16_t  keepIndex;  //记录电平持续时间 0：低电平  1:高电平
 	
+	uint16_t   press_count;
+
 	uint8_t   temp_test;
 }T4_InfraredDev;
 

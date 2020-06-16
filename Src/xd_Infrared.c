@@ -84,6 +84,7 @@ void IR_InfraPeriodHandle(TIM_HandleTypeDef *htim)
 	T5Infra->TriTime[1] = 0;
 	TIM_OC4PolarityConfig(TIM5, TIM_INPUTCHANNELPOLARITY_BOTHEDGE);	
 	T5Infra->keepIndex = 0;
+	T5Infra->press_count = 0;
 	if (T5Infra->keepLevelTime[1] > 0){
 		//memset(T5Infra->keepLevelTime, 0, sizeof(T5Infra->keepLevelTime));
 		//memset(T5Infra->keepLevel, 0, sizeof(T5Infra->keepLevel));
@@ -154,20 +155,25 @@ void IR_InfraCaptureHandle(TIM_HandleTypeDef *htim)
 	
 		T5Infra->KEY_VALUE = IR_LevelTime_2_UintNum(&T5Infra->keepLevelTime[2], 32);
 
-		if(T5Infra->KEY_VALUE == 0xbf40ff00){
+		if(T5Infra->KEY_VALUE == 0xb847ff00 && T5Infra->press_count < 1){
 			BTN1_PRESS_DOWN_Handler(NULL);
+			T5Infra->press_count++;
 		}
-		else if(T5Infra->KEY_VALUE == 0xea15ff00){
+		else if(T5Infra->KEY_VALUE == 0xbb44ff00 && T5Infra->press_count < 1){
 			BTN2_PRESS_DOWN_Handler(NULL);
+			T5Infra->press_count++;
 		}
-		else if(T5Infra->KEY_VALUE == 0xe619ff00){
+		else if(T5Infra->KEY_VALUE == 0xf807ff00){
 			BTN3_PRESS_DOWN_Handler(NULL);
+			T5Infra->press_count++;
 		}
-		else if(T5Infra->KEY_VALUE == 0xe718ff00){
+		else if(T5Infra->KEY_VALUE == 0xe916ff00 && T5Infra->press_count < 1){
 			BTN4_PRESS_DOWN_Handler(NULL);
+			T5Infra->press_count++;
 		}
-		else if(T5Infra->KEY_VALUE == 0xe31cff00){
+		else if(T5Infra->KEY_VALUE == 0xf30cff00 && T5Infra->press_count < 1){
 			BTN5_PRESS_DOWN_Handler(NULL);
+			T5Infra->press_count++;
 		}
 		
 	}

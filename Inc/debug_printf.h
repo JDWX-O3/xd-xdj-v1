@@ -29,6 +29,7 @@ extern "C" {
 
 
 
+#define  DEBUG_Printf   printf
 
 
 #ifdef __cplusplus

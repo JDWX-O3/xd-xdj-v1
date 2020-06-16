@@ -373,9 +373,10 @@ int32_t TM1650_Display_Float_2_Num(float Data)
 {
 	int b0,b1;
 
-	if (Data > 99 || Data < 0.1){
+	if (Data > 99){
 		return -1;
 	}
+
 
 	if (Data < 10){
 		b0=(int)Data;
