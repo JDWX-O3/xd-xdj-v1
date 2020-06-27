@@ -278,7 +278,7 @@ void BTN5_PRESS_DOWN_Handler(void* btn)
 	if(g_config.dev_run_mode == RUN_MOD_MANAUL){
 	
 		//È¡Ïû
-		DEVICE_STOP;
+		//DEVICE_STOP;
 		g_config.o3_set_minute = 0;
 		TM1650_Display_Num(g_config.o3_set_minute);
 

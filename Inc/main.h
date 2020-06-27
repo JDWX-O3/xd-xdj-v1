@@ -100,7 +100,8 @@ typedef struct {
 
 
 	uint32_t                 sec_count;   ///用户定时器，单位秒
-	uint32_t                 user_timer_max;   ///用户定时器，单位秒
+	uint32_t                 user_timer_max;   ///用户定时器最大值，单位秒
+	float                      current_ck_max;   ///电流检测最大值，单位秒
 
 
 	uint8_t                 kq_sensor_a;   ///
@@ -147,12 +148,11 @@ void GConfig_Init(void);
 #define KEY1_SCAN_COUNT 4
 
 
-#define CURRENT_P_VALUE   0.35
 
 
 //1:需要电流检测  0:不需要电流检测
-#define FAULT_CHECK_FLAG 1     //带电容的风机无法检测电流，去掉故障检测
-//#define FAULT_CHECK_FLAG 1     //需要电流检测
+#define CURRENT_P_VALUE   0
+//#define CURRENT_P_VALUE   0.35
 
 
 

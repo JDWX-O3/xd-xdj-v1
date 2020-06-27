@@ -81,7 +81,6 @@ userOpAttr_t g_config = {
 };
 
 uint32_t push_key_value = 0;
-uint32_t fault_check_value = 0;
 uint8_t ir_key = 0;
 uint8_t ir_add = 0;
 uint8_t debug_count = 0;
@@ -115,6 +114,8 @@ static void MX_NVIC_Init(void);
 void GConfig_Init(void)
 {
 	g_config.user_timer_max = 720;
+	g_config.current_ck_max = CURRENT_P_VALUE;
+
 
 
 	//风扇转
@@ -134,8 +135,8 @@ void GConfig_Init(void)
 
 
 	//auto mode
-	g_config.fan_stop_minute = 20;   //首次上电直接启动
-	g_config.o3_run_minute = 20;
+	g_config.fan_stop_minute = 0;   //首次上电直接启动
+	g_config.o3_run_minute = 0;
 
 	//非调节状态
 	g_config.kq_adjust = 0xff;
@@ -177,7 +178,7 @@ static void Device_Init(void)
 	}        
 
 	
-	g_config.user_timer_max = 720;
+	//g_config.user_timer_max = 720;
 	X9C103_Value_Clear();
 	g_config.x9c103_gear = 0;
 	X9C103_Gear_Display(g_config.x9c103_gear);	
@@ -762,6 +763,7 @@ void StartDefaultTask(void *argument)
 			if (g_config.fan_run_status != DEV_RUN){
 				RELAY_FAN_RUN();
 				g_config.fan_run_sec = 1;  //
+				g_config.fan_stop_minute = 0;
 			}
 
 			//30 s， 中间状态
@@ -826,6 +828,8 @@ void StartDefaultTask(void *argument)
 			if (g_config.o3_run_status != DEV_STOP){
 				RELAY_O3_STOP();
 				g_config.o3_stop_sec = 1;
+				g_config.o3_run_minute = 0;
+				g_config.o3_run_sec = 0;
 			}
 
 
@@ -841,6 +845,9 @@ void StartDefaultTask(void *argument)
 			//停止o3, 这个状态很快
 			if (g_config.o3_run_status != DEV_STOP){
 				RELAY_O3_STOP();
+				g_config.o3_stop_sec = 1;
+				g_config.o3_run_minute = 0;
+				g_config.o3_run_sec = 0;
 			}
 
 			//停止风扇
@@ -868,6 +875,8 @@ void StartDefaultTask(void *argument)
 		case FSM_FAN_STOP_OVER_30S:
 			if (g_config.fan_run_status != DEV_STOP){
 				RELAY_FAN_STOP();
+				g_config.fan_stop_sec = 0;
+				g_config.fan_stop_minute = 0;
 			}
 			
 		
@@ -890,8 +899,13 @@ void StartDefaultTask(void *argument)
 
 		case FSM_FAULT_STATUS:
 			RELAY_O3_STOP();
+			g_config.o3_stop_sec = 1;
+			g_config.o3_run_minute = 0;
+			g_config.o3_run_sec = 0;
+			
 			RELAY_FAN_STOP();
-
+			g_config.fan_stop_sec = 0;
+			g_config.fan_stop_minute = 0;
 			break;	
 		default:
 			g_config.device_fsm_status = FSM_FAN_STOP_OVER_30S;
@@ -956,18 +970,22 @@ void StartTask02(void *argument)
 
 
 		//电流保护
-#if (FAULT_CHECK_FLAG == 1)
-		fault_check_value = CURRENT_P_VALUE;
-#endif
-		if(g_config.a_cur_value[0] < fault_check_value && g_config.a_cur_value[1] < fault_check_value && g_config.a_cur_value[2] < fault_check_value 
-			&& g_config.a_cur_value[3] < fault_check_value && g_config.a_cur_value[4] < fault_check_value 
-			&& g_config.fan_run_status == DEV_RUN && g_config.o3_run_status == DEV_RUN && g_config.o3_run_minute > 1){
+		if(g_config.a_cur_value[0] < g_config.current_ck_max && g_config.a_cur_value[1] < g_config.current_ck_max 
+			&& g_config.a_cur_value[2] < g_config.current_ck_max && g_config.a_cur_value[3] < g_config.current_ck_max 
+			&& g_config.a_cur_value[4] < g_config.current_ck_max 
+			&& g_config.fan_run_status == DEV_RUN && g_config.o3_run_status == DEV_RUN){
 			//RELAY_O3_STOP();  //停机保护
 			DEVICE_FAULT;  //停机
 			g_config.dev_run_mode = RUN_MOD_FAULT;  //故障状态
 			g_config.fault_code = 0x1;  //故障码
 		}
-		
+		else if (g_config.o3_run_status  == DEV_RUN && g_config.fan_run_status == DEV_STOP){
+			//RELAY_O3_STOP();  //停机保护
+			DEVICE_FAULT;  //停机
+			g_config.dev_run_mode = RUN_MOD_FAULT;  //故障状态
+			g_config.fault_code = 0x2;  //故障码
+		}
+
 
 		switch (g_config.dev_run_mode) {
 		case RUN_MOD_MANAUL:
@@ -1002,7 +1020,11 @@ void StartTask02(void *argument)
 
 
 			///定义开关机命令
-			if (g_config.kq_adjust == DEV_RUN){
+			//连续运行保护
+			if(g_config.o3_run_minute > 120){
+				DEVICE_STOP;  //停机
+			}
+			else if (g_config.kq_adjust == DEV_RUN){
 				//开机
 				g_config.kq_quality = 4;
 				DEVICE_RUN;  //开机
@@ -1022,11 +1044,6 @@ void StartTask02(void *argument)
 				DEVICE_STOP;  //停机
 			}
 
-			
-			//连续运行保护
-			if(g_config.o3_run_minute > 120){
-				DEVICE_STOP;  //停机
-			}
 
 			
 
@@ -1102,7 +1119,7 @@ void StartTask03(void *argument)
 		case RUN_MOD_DEBUG:
 			///tmep code
 			TM1650_First_Display_Num(0xd);
-			TM1650_Display_Float_2_Num(fault_check_value);
+			TM1650_Display_Float_2_Num(g_config.current_ck_max);
 		
 			break;
 		}
